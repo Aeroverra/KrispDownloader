@@ -1,134 +1,71 @@
 # Krisp Transcript Downloader
 
-A .NET console application that downloads all your Krisp.ai meeting transcripts using the Krisp API.
+A C# console application that downloads all your Krisp.ai meeting transcripts.
 
 ## Features
 
-- 📋 Fetches all meetings from your Krisp.ai account with pagination
-- 📝 Downloads transcripts for meetings that have them available
-- 🔧 Configurable via `appsettings.json`
-- 📊 Detailed logging of the download process
-- 💾 Saves transcripts with organized filenames
-- 🛡️ Rate limiting and respectful API usage
+- Downloads all available transcripts from your Krisp.ai account
+- Handles pagination automatically to get all meetings
+- Saves transcripts with descriptive filenames including date and meeting name
+- Provides detailed logging of the download process
+- Respectful API usage with delays between requests
 
 ## Setup
 
-1. **Get your Krisp Bearer Token**
-   - Open your browser and log into [app.krisp.ai](https://app.krisp.ai)
-   - Open Developer Tools (F12)
-   - Go to Network tab and refresh the page
-   - Look for API requests to `api.krisp.ai`
-   - Find the `Authorization` header with format `Bearer xxxxxxxx`
-   - Copy the token (everything after "Bearer ")
+1. **Get your Krisp.ai Bearer Token**
+   - Log into your Krisp.ai account
+   - Open browser developer tools (F12)
+   - Go to the Network tab
+   - Make a request to the Krisp API (like viewing a meeting)
+   - Find the Authorization header in the request and copy the Bearer token
 
-2. **Configure the application**
+2. **Configure the Application**
    - Open `appsettings.json`
-   - Replace `YOUR_BEARER_TOKEN_HERE` with your actual bearer token
-   - Optionally change the download directory path
+   - Replace `"your-bearer-token-here"` with your actual bearer token
+   - Optionally change the `DownloadDirectory` path (defaults to "Downloads")
 
-3. **Build and run**
+3. **Run the Application**
    ```bash
-   dotnet build
+   cd KrispDownloader
    dotnet run
    ```
 
 ## Configuration
 
-The `appsettings.json` file contains the following settings:
+The application uses `appsettings.json` for configuration:
 
 ```json
 {
   "KrispApi": {
-    "BearerToken": "YOUR_BEARER_TOKEN_HERE",
     "BaseUrl": "https://api.krisp.ai/v2",
-    "DownloadDirectory": "./downloads"
+    "BearerToken": "your-bearer-token-here"
   },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information"
-    }
-  }
+  "DownloadDirectory": "Downloads"
 }
 ```
 
-## Usage
+## Output
 
-When you run the application, you'll see a menu with options:
+- Transcripts are saved as JSON files in the specified download directory
+- Files are named with the format: `{date}_{meeting-name}_{meeting-id}.json`
+- The application will create the download directory if it doesn't exist
+- Detailed logs show the progress of the download process
 
-1. **Download all transcripts** - Fetches all meetings and attempts to download their transcripts
-2. **List meetings only** - Shows a preview of your meetings without downloading
-3. **Exit** - Quit the application
+## What Gets Downloaded
 
-## How It Works
-
-1. **Fetch Meetings**: The application calls the `/meetings/list` endpoint with pagination to get all your meetings
-2. **Filter Transcripts**: Only meetings with uploaded transcripts are processed
-3. **Download Attempts**: For each meeting, the application:
-   - Calls the `/actions/ui_download_notes` endpoint (as specified)
-   - Tries alternative API endpoints to get transcript content:
-     - `/meetings/{id}/transcript`
-     - `/meetings/{id}/notes`
-     - `/meetings/{id}/export`
-4. **Save Files**: Successfully downloaded content is saved with descriptive filenames
-
-## Known Limitations & Blob URL Challenge
-
-⚠️ **Important Note**: The Krisp API's `/actions/ui_download_notes` endpoint returns a success response but doesn't provide a direct download URL. In the browser, transcripts are downloaded via blob URLs (like `blob:https://app.krisp.ai/...`), which are generated client-side.
-
-### Current Workarounds
-
-The application attempts several strategies to get transcript content:
-1. Direct API endpoints for transcript data
-2. Notes endpoints that might contain transcript information
-3. Export endpoints that could provide downloadable content
-
-### Potential Solutions
-
-If the current approaches don't work, you may need to:
-
-1. **Investigate Network Traffic**: 
-   - Use browser dev tools to monitor all network requests when downloading a transcript manually
-   - Look for additional API calls that provide the actual download URL
-
-2. **Check for Additional Endpoints**:
-   - The Krisp API might have other endpoints like `/meetings/{id}/download` or similar
-   - Try different variations of export/download endpoints
-
-3. **Browser Automation**: 
-   - Consider using tools like Selenium or Playwright to automate the browser download process
-   - This would handle the blob URL generation automatically
-
-4. **Contact Krisp Support**:
-   - Ask about programmatic access to transcript downloads
-   - Request documentation for the complete download API flow
-
-## File Naming Convention
-
-Downloaded files are saved with the following format:
-```
-{meeting_id}_{sanitized_meeting_name}_{date}.{extension}
-```
-
-Example: `502a6948b75648d0a4837ba282727f03_firefox_meeting_July_17_2025-07-16.transcript.json`
-
-## Logging
-
-The application provides detailed logging to help you understand what's happening:
-- Meeting fetch progress
-- Download attempts and results
-- Error messages and debugging information
-- Success/failure statistics
+- The application fetches all meetings from your Krisp.ai account
+- Only meetings with available transcripts (status "uploaded" or "ready") are processed
+- Each transcript is saved as a complete JSON response from the Krisp API
+- The JSON includes transcript text, speakers, timestamps, and other meeting metadata
 
 ## Requirements
 
 - .NET 9.0 or later
-- Valid Krisp.ai account with meetings
-- Bearer token from your Krisp session
+- Valid Krisp.ai account with meetings that have transcripts
 
-## Contributing
+## Notes
 
-If you discover working API endpoints for direct transcript downloads, please update the `TryAlternativeDownloadApproaches` method in `KrispDownloaderService.cs`.
-
-## Disclaimer
-
-This tool is for personal use with your own Krisp.ai account. Respect Krisp's terms of service and API rate limits. The bearer token gives access to your account data, so keep it secure.
+- The application runs once and then exits (it's not a continuous service)
+- There's a small delay between API requests to be respectful to the Krisp.ai servers
+- If a transcript fails to download, the application will continue with the next one
+- All activity is logged to the console for monitoring progress
