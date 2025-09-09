@@ -7,12 +7,14 @@ namespace KrispDownloader
         private readonly ILogger<Worker> _logger;
         private readonly KrispApiService _krispApiService;
         private readonly FileService _fileService;
+        private readonly TranscriptParsingService _transcriptParsingService;
 
-        public Worker(ILogger<Worker> logger, KrispApiService krispApiService, FileService fileService)
+        public Worker(ILogger<Worker> logger, KrispApiService krispApiService, FileService fileService, TranscriptParsingService transcriptParsingService)
         {
             _logger = logger;
             _krispApiService = krispApiService;
             _fileService = fileService;
+            _transcriptParsingService = transcriptParsingService;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -20,7 +22,8 @@ namespace KrispDownloader
             try
             {
                 _logger.LogInformation("Starting Krisp transcript download process...");
-                _logger.LogInformation("Download directory: {Directory}", _fileService.GetDownloadDirectory());
+                _logger.LogInformation("JSON downloads directory: {Directory}", _fileService.GetDownloadDirectory());
+                _logger.LogInformation("Formatted transcripts directory: {Directory}", _fileService.GetFormattedDirectory());
 
                 // Get all meetings
                 var meetings = await _krispApiService.GetAllMeetingsAsync(stoppingToken);
@@ -49,14 +52,20 @@ namespace KrispDownloader
                         break;
 
                     try
-                {
+                    {
                         _logger.LogInformation("Processing meeting: {Name} ({Id})", meeting.Name, meeting.Id);
                         
                         var transcript = await _krispApiService.GetTranscriptAsync(meeting.Id, stoppingToken);
                         
                         if (transcript != null)
                         {
+                            // Save the original JSON
                             await _fileService.SaveTranscriptAsync(meeting, transcript);
+                            
+                            // Parse and save the formatted transcript
+                            var formattedTranscript = _transcriptParsingService.ParseTranscriptToReadableFormat(transcript);
+                            await _fileService.SaveFormattedTranscriptAsync(meeting, formattedTranscript);
+                            
                             successCount++;
                         }
                         else

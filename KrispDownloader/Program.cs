@@ -16,10 +16,11 @@ namespace KrispDownloader
             
             builder.Services.AddHttpClient<KrispApiService>();
             builder.Services.AddSingleton<FileService>();
+            builder.Services.AddSingleton<TranscriptParsingService>();
             builder.Services.AddHostedService<Worker>();
 
             var host = builder.Build();
             host.Run();
+        }
     }
-}
 }

@@ -7,11 +7,13 @@ namespace KrispDownloader.Services
     {
         private readonly ILogger<FileService> _logger;
         private readonly string _downloadDirectory;
+        private readonly string _formattedDirectory;
 
         public FileService(ILogger<FileService> logger, IConfiguration configuration)
         {
             _logger = logger;
             _downloadDirectory = configuration.GetValue<string>("DownloadDirectory") ?? "Downloads";
+            _formattedDirectory = Path.Combine(_downloadDirectory, "Formatted");
         }
 
         public async Task SaveTranscriptAsync(Meeting meeting, string transcriptContent)
@@ -22,21 +24,43 @@ namespace KrispDownloader.Services
                 Directory.CreateDirectory(_downloadDirectory);
 
                 // Create a safe filename
-                var fileName = CreateSafeFileName(meeting);
+                var fileName = CreateSafeFileName(meeting, ".json");
                 var filePath = Path.Combine(_downloadDirectory, fileName);
 
-                // Save the transcript
+                // Save the JSON transcript
                 await File.WriteAllTextAsync(filePath, transcriptContent);
                 
-                _logger.LogInformation("Saved transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
+                _logger.LogInformation("Saved JSON transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving transcript for meeting {MeetingId}", meeting.Id);
+                _logger.LogError(ex, "Error saving JSON transcript for meeting {MeetingId}", meeting.Id);
             }
         }
 
-        private string CreateSafeFileName(Meeting meeting)
+        public async Task SaveFormattedTranscriptAsync(Meeting meeting, string formattedContent)
+        {
+            try
+            {
+                // Ensure formatted directory exists
+                Directory.CreateDirectory(_formattedDirectory);
+
+                // Create a safe filename
+                var fileName = CreateSafeFileName(meeting, ".txt");
+                var filePath = Path.Combine(_formattedDirectory, fileName);
+
+                // Save the formatted transcript
+                await File.WriteAllTextAsync(filePath, formattedContent);
+                
+                _logger.LogInformation("Saved formatted transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving formatted transcript for meeting {MeetingId}", meeting.Id);
+            }
+        }
+
+        private string CreateSafeFileName(Meeting meeting, string extension)
         {
             // Parse the date from created_at
             var createdDate = DateTime.TryParse(meeting.CreatedAt, out var date) ? date : DateTime.Now;
@@ -45,8 +69,8 @@ namespace KrispDownloader.Services
             // Clean the meeting name to make it file-safe
             var safeName = CleanFileName(meeting.Name);
             
-            // Create filename with format: {date}_{safeName}_{meetingId}.json
-            return $"{dateString}_{safeName}_{meeting.Id}.json";
+            // Create filename with format: {date}_{safeName}_{meetingId}.{extension}
+            return $"{dateString}_{safeName}_{meeting.Id}{extension}";
         }
 
         private string CleanFileName(string fileName)
@@ -70,6 +94,11 @@ namespace KrispDownloader.Services
         public string GetDownloadDirectory()
         {
             return Path.GetFullPath(_downloadDirectory);
+        }
+
+        public string GetFormattedDirectory()
+        {
+            return Path.GetFullPath(_formattedDirectory);
         }
     }
 } 
