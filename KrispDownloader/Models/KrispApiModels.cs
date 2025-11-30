@@ -98,6 +98,97 @@ namespace KrispDownloader.Models
         public long Size { get; set; }
     }
 
+    // Detailed meeting response (used for recording download and transcript parsing)
+    public class MeetingDetailsResponse
+    {
+        [JsonPropertyName("code")]
+        public int Code { get; set; }
+
+        [JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
+
+        [JsonPropertyName("data")]
+        public MeetingDetailsData Data { get; set; } = new();
+
+        [JsonPropertyName("req_id")]
+        public string ReqId { get; set; } = string.Empty;
+    }
+
+    public class MeetingDetailsData
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("created_at")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("resources")]
+        public MeetingResources Resources { get; set; } = new();
+    }
+
+    public class MeetingResources
+    {
+        [JsonPropertyName("transcript")]
+        public TranscriptDetail Transcript { get; set; } = new();
+
+        [JsonPropertyName("recording")]
+        public RecordingDetail? Recording { get; set; }
+
+        [JsonPropertyName("recordings")]
+        public List<RecordingDetail> Recordings { get; set; } = new();
+    }
+
+    public class TranscriptDetail
+    {
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("method")]
+        public string? Method { get; set; }
+
+        [JsonPropertyName("language")]
+        public string? Language { get; set; }
+
+        [JsonPropertyName("processor")]
+        public string? Processor { get; set; }
+
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
+    }
+
+    public class RecordingDetail
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("size")]
+        public long? Size { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public string? CreatedAt { get; set; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+
+        [JsonPropertyName("mime_type")]
+        public string? MimeType { get; set; }
+
+        [JsonPropertyName("capture_type")]
+        public string? CaptureType { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
+    }
+
+    public class MeetingDetailsResult
+    {
+        public string RawJson { get; set; } = string.Empty;
+        public MeetingDetailsResponse? Parsed { get; set; }
+    }
+
     public class MeetingNotes
     {
         [JsonPropertyName("action_items")]

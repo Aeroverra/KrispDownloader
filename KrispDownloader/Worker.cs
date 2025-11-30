@@ -33,9 +33,11 @@ namespace KrispDownloader
                 }
 
                 // Filter meetings that have transcripts available
-                var meetingsWithTranscripts = meetings.Where(m => 
-                    m.Resources.Transcript.Status == "uploaded" || 
-                    m.Resources.Transcript.Status == "ready").ToList();
+                var meetingsWithTranscripts = meetings
+                    .Where(m => 
+                        m.Resources.Transcript.Status == "uploaded" || 
+                        m.Resources.Transcript.Status == "ready")
+                    .ToList();
 
                 _logger.LogInformation("Found {Total} meetings, {WithTranscripts} have transcripts available", 
                     meetings.Count, meetingsWithTranscripts.Count);
@@ -53,16 +55,52 @@ namespace KrispDownloader
                     {
                         _logger.LogInformation("Downloading meeting: {Name}", meeting.Name);
                         
-                        var transcript = await _krispApiService.GetTranscriptAsync(meeting.Id, stoppingToken);
+                        var meetingDetailsResult = await _krispApiService.GetMeetingDetailsAsync(meeting.Id, stoppingToken);
                         
-                        if (transcript != null)
+                        if (meetingDetailsResult != null && !string.IsNullOrWhiteSpace(meetingDetailsResult.RawJson))
                         {
                             // Save the original JSON
-                            await _fileService.SaveTranscriptAsync(meeting, transcript);
+                            await _fileService.SaveMeetingDetailsJson(meeting, meetingDetailsResult.RawJson);
                             
                             // Parse and save the formatted transcript
-                            var formattedTranscript = _transcriptParsingService.ParseTranscriptToReadableFormat(transcript);
+                            var formattedTranscript = _transcriptParsingService.ParseTranscriptToReadableFormat(meetingDetailsResult.RawJson);
                             await _fileService.SaveFormattedTranscriptAsync(meeting, formattedTranscript);
+
+                            // Download recording if available (prefer primary recording object)
+                            var resources = meetingDetailsResult.Parsed?.Data?.Resources;
+                            if (resources?.Recording != null)
+                            {
+                                var recordingCount = resources.Recordings?.Count ?? 0;
+                                if (recordingCount > 1)
+                                {
+                                    _logger.LogCritical("Meeting {Id} has {Count} recordings; using the main recording URL", meeting.Id, recordingCount);
+                                }
+
+                                var recordingUrl = resources.Recording.Url;
+                                var mimeType = resources.Recording.MimeType;
+
+                                if (!string.IsNullOrWhiteSpace(recordingUrl))
+                                {
+                                    using var response = await _krispApiService.GetRecordingResponseAsync(recordingUrl, stoppingToken);
+                                    if (response != null)
+                                    {
+                                        await using var stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                                        await _fileService.SaveRecordingAsync(meeting, stream, mimeType, stoppingToken);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning("Failed to download recording for meeting {Id}", meeting.Id);
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Recording URL missing for meeting {Id}", meeting.Id);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Recording info missing for meeting {Id}", meeting.Id);
+                            }
                             
                             successCount++;
                         }

@@ -38,11 +38,13 @@ namespace KrispDownloader.Services
             const int pageSize = 250;
             bool hasMorePages = true;
 
+            _logger.LogInformation("Fetching all meetings");
+
             while (hasMorePages && !cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    _logger.LogInformation("Fetching meetings page {Page}", currentPage);
+                    _logger.LogDebug("Fetching meetings page {Page}", currentPage);
                     
                     var request = new MeetingsListRequest
                     {
@@ -64,7 +66,7 @@ namespace KrispDownloader.Services
                     var meetings = response.Data.Rows;
                     allMeetings.AddRange(meetings);
                     
-                    _logger.LogInformation("Retrieved {Count} meetings from page {Page}. Total so far: {Total}", 
+                    _logger.LogDebug("Retrieved {Count} meetings from page {Page}. Total so far: {Total}", 
                         meetings.Count, currentPage, allMeetings.Count);
 
                     // Check if we have more pages
@@ -100,11 +102,11 @@ namespace KrispDownloader.Services
             return JsonSerializer.Deserialize<MeetingsListResponse>(responseContent, _jsonOptions);
         }
 
-        public async Task<string?> GetTranscriptAsync(string meetingId, CancellationToken cancellationToken = default)
+        public async Task<MeetingDetailsResult?> GetMeetingDetailsAsync(string meetingId, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogDebug("Downloading transcript for meeting {MeetingId}", meetingId);
+                _logger.LogDebug("Downloading meeting details for meeting {MeetingId}", meetingId);
                 
                 var response = await _httpClient.GetAsync($"/v2/meetings/{meetingId}", cancellationToken);
                 
@@ -116,11 +118,51 @@ namespace KrispDownloader.Services
                 }
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                return content;
+                
+                MeetingDetailsResponse? parsed = null;
+                try
+                {
+                    parsed = JsonSerializer.Deserialize<MeetingDetailsResponse>(content, _jsonOptions);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to deserialize meeting details for meeting {MeetingId}", meetingId);
+                }
+
+                return new MeetingDetailsResult
+                {
+                    RawJson = content,
+                    Parsed = parsed
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error downloading transcript for meeting {MeetingId}", meetingId);
+                return null;
+            }
+        }
+
+        public async Task<HttpResponseMessage?> GetRecordingResponseAsync(string recordingUrl, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogDebug("Downloading recording from {Url}", recordingUrl);
+                
+                var response = await _httpClient.GetAsync(recordingUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("HTTP error {StatusCode} when downloading recording: {ReasonPhrase}", 
+                        response.StatusCode, response.ReasonPhrase);
+                    response.Dispose();
+                    return null;
+                }
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading recording from {Url}", recordingUrl);
                 return null;
             }
         }

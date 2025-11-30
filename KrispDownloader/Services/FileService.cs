@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using KrispDownloader.Models;
 
 namespace KrispDownloader.Services
@@ -8,27 +9,42 @@ namespace KrispDownloader.Services
         private readonly ILogger<FileService> _logger;
         private readonly string _downloadDirectory;
         private readonly string _formattedDirectory;
+        private readonly string _recordingsDirectory;
 
         public FileService(ILogger<FileService> logger, IConfiguration configuration)
         {
             _logger = logger;
             _downloadDirectory = configuration.GetValue<string>("DownloadDirectory") ?? "Downloads";
             _formattedDirectory = Path.Combine(_downloadDirectory, "Formatted");
+            _recordingsDirectory = Path.Combine(_downloadDirectory, "Recordings");
         }
 
-        public async Task SaveTranscriptAsync(Meeting meeting, string transcriptContent)
+        public async Task SaveMeetingDetailsJson(Meeting meeting, string transcriptContent)
         {
             try
             {
                 // Ensure download directory exists
                 Directory.CreateDirectory(_downloadDirectory);
 
+                // Format JSON for readability; fall back to original on parse errors
+                string formattedJson;
+                try
+                {
+                    using var doc = JsonDocument.Parse(transcriptContent);
+                    formattedJson = JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+                }
+                catch (JsonException e)
+                {
+                    formattedJson = transcriptContent;
+                    _logger.LogError(e, "Failed to parse JSON for meeting {MeetingId}, saving unformatted content", meeting.Id);
+                }
+
                 // Create a safe filename
                 var fileName = CreateSafeFileName(meeting, ".json");
                 var filePath = Path.Combine(_downloadDirectory, fileName);
 
                 // Save the JSON transcript
-                await File.WriteAllTextAsync(filePath, transcriptContent);
+                await File.WriteAllTextAsync(filePath, formattedJson);
                 
                 _logger.LogDebug("Saved JSON transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
             }
@@ -100,5 +116,47 @@ namespace KrispDownloader.Services
         {
             return Path.GetFullPath(_formattedDirectory);
         }
+
+        public string GetRecordingsDirectory()
+        {
+            return Path.GetFullPath(_recordingsDirectory);
+        }
+
+        public async Task SaveRecordingAsync(Meeting meeting, Stream contentStream, string? mimeType, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                Directory.CreateDirectory(_recordingsDirectory);
+
+                var extension = GetExtensionFromMimeType(mimeType);
+                var fileName = CreateSafeFileName(meeting, extension);
+                var filePath = Path.Combine(_recordingsDirectory, fileName);
+
+                await using var fileStream = File.Create(filePath);
+                await contentStream.CopyToAsync(fileStream, cancellationToken);
+
+                _logger.LogDebug("Saved recording for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving recording for meeting {MeetingId}", meeting.Id);
+            }
+        }
+
+        private string GetExtensionFromMimeType(string? mimeType)
+        {
+            if (string.IsNullOrWhiteSpace(mimeType))
+                return ".bin";
+
+            return mimeType.ToLowerInvariant() switch
+            {
+                "audio/mp3" => ".mp3",
+                "audio/mpeg" => ".mp3",
+                "audio/wav" => ".wav",
+                "audio/x-wav" => ".wav",
+                "audio/flac" => ".flac",
+                _ => ".bin"
+            };
+        }
     }
-} 
+}
