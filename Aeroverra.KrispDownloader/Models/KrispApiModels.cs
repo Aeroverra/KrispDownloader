@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace KrispDownloader.Models
+namespace Aeroverra.KrispDownloader.Models
 {
     public class MeetingsListResponse
     {

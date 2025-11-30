@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
 using System.Text.Json;
-using KrispDownloader.Models;
-using KrispDownloader.Configuration;
+using Aeroverra.KrispDownloader.Models;
+using Aeroverra.KrispDownloader.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace KrispDownloader.Services
+namespace Aeroverra.KrispDownloader.Services
 {
     public class FileService
     {

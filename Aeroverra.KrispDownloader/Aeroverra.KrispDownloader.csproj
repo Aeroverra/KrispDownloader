@@ -4,7 +4,7 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<UserSecretsId>dotnet-KrispDownloader-e179e989-a1d7-473f-84f5-f2d14be9f6b2</UserSecretsId>
+		<UserSecretsId>dotnet-Aeroverra.KrispDownloader-e179e989-a1d7-473f-84f5-f2d14be9f6b2</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>

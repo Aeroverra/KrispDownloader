@@ -1,8 +1,8 @@
-using KrispDownloader.Configuration;
-using KrispDownloader.Services;
+using Aeroverra.KrispDownloader.Configuration;
+using Aeroverra.KrispDownloader.Services;
 using Serilog;
 
-namespace KrispDownloader
+namespace Aeroverra.KrispDownloader
 {
     public class Program
     {

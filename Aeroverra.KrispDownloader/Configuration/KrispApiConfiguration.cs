@@ -1,4 +1,4 @@
-namespace KrispDownloader.Configuration
+namespace Aeroverra.KrispDownloader.Configuration
 {
     public class KrispApiConfiguration
     {

@@ -1,7 +1,7 @@
 ﻿using Serilog;
 using Serilog.Events;
 
-namespace KrispDownloader.Configuration
+namespace Aeroverra.KrispDownloader.Configuration
 {
     public class SerilogConfig
     {

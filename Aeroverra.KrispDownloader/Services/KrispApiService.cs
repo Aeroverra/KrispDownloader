@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using KrispDownloader.Configuration;
-using KrispDownloader.Models;
+using Aeroverra.KrispDownloader.Configuration;
+using Aeroverra.KrispDownloader.Models;
 
-namespace KrispDownloader.Services
+namespace Aeroverra.KrispDownloader.Services
 {
     public class KrispApiService
     {

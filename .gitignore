@@ -348,6 +348,6 @@ healthchecksdb
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
-KrispDownloader/Downloads/
+Aeroverra.KrispDownloader/Downloads/
 
-KrispDownloader/Krisp.AI Data Export/
+Aeroverra.KrispDownloader/Krisp.AI Data Export/

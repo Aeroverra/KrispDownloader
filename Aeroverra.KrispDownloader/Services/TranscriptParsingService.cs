@@ -1,7 +1,7 @@
 using System.Text.Json;
-using KrispDownloader.Models;
+using Aeroverra.KrispDownloader.Models;
 
-namespace KrispDownloader.Services
+namespace Aeroverra.KrispDownloader.Services
 {
     public class TranscriptParsingService
     {

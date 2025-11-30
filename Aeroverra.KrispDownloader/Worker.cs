@@ -1,8 +1,7 @@
-using KrispDownloader.Configuration;
-using KrispDownloader.Services;
-using Microsoft.Extensions.Configuration;
+using Aeroverra.KrispDownloader.Configuration;
+using Aeroverra.KrispDownloader.Services;
 
-namespace KrispDownloader
+namespace Aeroverra.KrispDownloader
 {
     public class Worker : BackgroundService
     {
