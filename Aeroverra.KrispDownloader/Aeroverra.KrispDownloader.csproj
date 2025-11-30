@@ -1,17 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>dotnet-Aeroverra.KrispDownloader-e179e989-a1d7-473f-84f5-f2d14be9f6b2</UserSecretsId>
+		<AssemblyTitle>KrispDownloader By Aeroverra</AssemblyTitle>
+		<AssemblyName>KrispDownloader</AssemblyName>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <DebugType>embedded</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <DebugType>embedded</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.5" />
-		<PackageReference Include="System.Text.Json" Version="9.0.5" />
+	  <Compile Remove="Krisp.AI Data Export\**" />
+	  <Content Remove="Krisp.AI Data Export\**" />
+	  <EmbeddedResource Remove="Krisp.AI Data Export\**" />
+	  <None Remove="Krisp.AI Data Export\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
 		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
 	</ItemGroup>
 </Project>

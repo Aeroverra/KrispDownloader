@@ -351,3 +351,5 @@ MigrationBackup/
 Aeroverra.KrispDownloader/Downloads/
 
 Aeroverra.KrispDownloader/Krisp.AI Data Export/
+
+Aeroverra.KrispDownloader/appsettings.Production.json
