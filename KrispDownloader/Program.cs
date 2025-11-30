@@ -1,6 +1,6 @@
 using KrispDownloader.Configuration;
 using KrispDownloader.Services;
-using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace KrispDownloader
 {
@@ -9,11 +9,13 @@ namespace KrispDownloader
         public static void Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            
+
+            SerilogConfig.ConfigureBootstrapLogger();
+            builder.Services.AddSerilog(SerilogConfig.ConfigureFullLogger);
+
             // Configure services
-            builder.Services.Configure<KrispApiConfiguration>(
-                builder.Configuration.GetSection("KrispApi"));
-            
+            builder.Services.Configure<KrispApiConfiguration>(builder.Configuration.GetSection("KrispApi"));
+
             builder.Services.AddHttpClient<KrispApiService>();
             builder.Services.AddSingleton<FileService>();
             builder.Services.AddSingleton<TranscriptParsingService>();
