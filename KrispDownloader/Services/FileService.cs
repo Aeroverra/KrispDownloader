@@ -30,7 +30,7 @@ namespace KrispDownloader.Services
                 // Save the JSON transcript
                 await File.WriteAllTextAsync(filePath, transcriptContent);
                 
-                _logger.LogInformation("Saved JSON transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
+                _logger.LogDebug("Saved JSON transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
             }
             catch (Exception ex)
             {
@@ -52,7 +52,7 @@ namespace KrispDownloader.Services
                 // Save the formatted transcript
                 await File.WriteAllTextAsync(filePath, formattedContent);
                 
-                _logger.LogInformation("Saved formatted transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
+                _logger.LogDebug("Saved formatted transcript for meeting {MeetingId} to {FilePath}", meeting.Id, filePath);
             }
             catch (Exception ex)
             {

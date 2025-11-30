@@ -22,8 +22,6 @@ namespace KrispDownloader
             try
             {
                 _logger.LogInformation("Starting Krisp transcript download process...");
-                _logger.LogInformation("JSON downloads directory: {Directory}", _fileService.GetDownloadDirectory());
-                _logger.LogInformation("Formatted transcripts directory: {Directory}", _fileService.GetFormattedDirectory());
 
                 // Get all meetings
                 var meetings = await _krispApiService.GetAllMeetingsAsync(stoppingToken);
@@ -53,7 +51,7 @@ namespace KrispDownloader
 
                     try
                     {
-                        _logger.LogInformation("Processing meeting: {Name} ({Id})", meeting.Name, meeting.Id);
+                        _logger.LogInformation("Downloading meeting: {Name}", meeting.Name);
                         
                         var transcript = await _krispApiService.GetTranscriptAsync(meeting.Id, stoppingToken);
                         

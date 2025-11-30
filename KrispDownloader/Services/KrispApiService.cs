@@ -104,7 +104,7 @@ namespace KrispDownloader.Services
         {
             try
             {
-                _logger.LogInformation("Downloading transcript for meeting {MeetingId}", meetingId);
+                _logger.LogDebug("Downloading transcript for meeting {MeetingId}", meetingId);
                 
                 var response = await _httpClient.GetAsync($"/v2/meetings/{meetingId}", cancellationToken);
                 
