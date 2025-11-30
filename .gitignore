@@ -349,3 +349,5 @@ healthchecksdb
 MigrationBackup/
 
 KrispDownloader/Downloads/
+
+KrispDownloader/Krisp.AI Data Export/

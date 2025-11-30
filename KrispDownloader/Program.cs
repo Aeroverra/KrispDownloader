@@ -6,8 +6,10 @@ namespace KrispDownloader
 {
     public class Program
     {
+        public const string ConsoleTitle = "Krisp Downloader By Aeroverra (Nicholas Halka)";
         public static void Main(string[] args)
         {
+            Console.Title = ConsoleTitle;
             var builder = Host.CreateApplicationBuilder(args);
 
             SerilogConfig.ConfigureBootstrapLogger();

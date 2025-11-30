@@ -1,22 +1,25 @@
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using KrispDownloader.Models;
+using KrispDownloader.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace KrispDownloader.Services
 {
     public class FileService
     {
         private readonly ILogger<FileService> _logger;
-        private readonly string _downloadDirectory;
+        private readonly string _meetingDetailsDirectory;
         private readonly string _formattedDirectory;
         private readonly string _recordingsDirectory;
 
-        public FileService(ILogger<FileService> logger, IConfiguration configuration)
+        public FileService(ILogger<FileService> logger, IOptions<KrispApiConfiguration> configuration)
         {
             _logger = logger;
-            _downloadDirectory = configuration.GetValue<string>("DownloadDirectory") ?? "Downloads";
-            _formattedDirectory = Path.Combine(_downloadDirectory, "Formatted");
-            _recordingsDirectory = Path.Combine(_downloadDirectory, "Recordings");
+            var config = configuration.Value;
+            _meetingDetailsDirectory = config.MeetingDetailsOutput ?? "Downloads";
+            _formattedDirectory = config.TranscriptsOutput ?? "Downloads";
+            _recordingsDirectory = config.RecordingsOutput ?? "Downloads";
         }
 
         public async Task SaveMeetingDetailsJson(Meeting meeting, string transcriptContent)
@@ -24,7 +27,7 @@ namespace KrispDownloader.Services
             try
             {
                 // Ensure download directory exists
-                Directory.CreateDirectory(_downloadDirectory);
+                Directory.CreateDirectory(_meetingDetailsDirectory);
 
                 // Format JSON for readability; fall back to original on parse errors
                 string formattedJson;
@@ -41,7 +44,7 @@ namespace KrispDownloader.Services
 
                 // Create a safe filename
                 var fileName = CreateSafeFileName(meeting, ".json");
-                var filePath = Path.Combine(_downloadDirectory, fileName);
+                var filePath = Path.Combine(_meetingDetailsDirectory, fileName);
 
                 // Save the JSON transcript
                 await File.WriteAllTextAsync(filePath, formattedJson);
@@ -109,7 +112,7 @@ namespace KrispDownloader.Services
 
         public string GetDownloadDirectory()
         {
-            return Path.GetFullPath(_downloadDirectory);
+            return Path.GetFullPath(_meetingDetailsDirectory);
         }
 
         public string GetFormattedDirectory()
