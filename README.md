@@ -1,37 +1,31 @@
-# Krisp Downloader (Transcripts + Recordings)
+# Krisp Downloader / Exporter
+Export your Krisp.ai meeting data (details, transcripts, recordings) to local files for your own records.
 
-## Quick Start (binary)
+## Quick Start
 1) Download the latest release asset for your platform (names include the RID, e.g., `KrispDownloader-win-x64.exe`, `KrispDownloader-osx-arm64`, etc.).
-2) Run it once. On first run it will create `appsettings.json` next to the executable and exit.
+2) Run it once. It will create `appsettings.json` next to the executable and exit.
 3) Edit `appsettings.json`:
-   - Set `BearerToken` to your Krisp token (see “Get your bearer token” below).
-   - Optionally adjust output paths and toggles (`SaveRecordings`, `SaveTranscripts`, `SaveMeetingDetails`).
-4) Run it again to download meeting details, transcripts, and recordings.
+   - Set `BearerToken` to your Krisp token (see “Get your Krisp bearer token” below).
+   - Optional: tweak output paths or disable parts (`SaveRecordings`, `SaveTranscripts`, `SaveMeetingDetails`).
+4) Run it again to export meetings (details JSON, transcript JSON + formatted text, and recordings).
 
-## Quick Start (source)
-```bash
-dotnet restore Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj
-dotnet run --project Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj
-```
-- First run writes `appsettings.json`, then exits. Edit it and rerun.
+## Get your Krisp bearer token (step-by-step)
+1) Go to https://app.krisp.ai and log in.
+2) Make sure you’re on the **Meetings** tab (list of meetings visible).
+3) Open browser DevTools → **Network** tab.
+4) Click any meeting in the list; a request with a random-looking id will appear.
+5) Select that request → **Headers** → under **Request Headers**, find `Authorization`.
+6) Copy the value after `Bearer ` and paste it into `KrispApi.BearerToken` in `appsettings.json`.
 
-## Get your Krisp bearer token
-- Log into Krisp in your browser.
-- Open dev tools (F12) → Network.
-- Trigger a Krisp API request (e.g., open a meeting).
-- Copy the `Authorization: Bearer ...` header value.
-- Paste into `KrispApi.BearerToken` in `appsettings.json`.
+Tip: You can filter Network requests by typing “recording” or “meetings” to find it faster. The attached screenshots (meetings list and Network tab with Authorization header) show what to look for.
 
-## What it does
-- Lists all meetings, pulls full meeting details JSON, and saves:
-  - Meeting details (formatted JSON).
-  - Transcript (pretty JSON + formatted text).
-  - Recording audio (mp3) when available.
-- Respects API (small delay, pagination handled).
-- Logs progress to console.
+## What gets exported
+- Meeting details (formatted JSON)  
+- Transcripts (raw JSON + formatted text)  
+- Recordings (mp3) when available  
+- Filenames include timestamp + meeting name + id; directories are auto-created.
 
-## Outputs & config
-`appsettings.json` keys (created on first run):
+## Configuration (created on first run)
 ```json
 {
   "KrispApi": {
@@ -46,19 +40,3 @@ dotnet run --project Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj
   }
 }
 ```
-- Filenames include timestamp, meeting name, and meeting id.
-- Directories are created automatically.
-
-## Supported release artifacts
-- Windows: `win-x64`, `win-x86`
-- macOS: `osx-x64`, `osx-arm64`
-- Linux: `linux-x64`, `linux-arm64`
-
-## Requirements
-- For source: .NET 10 SDK.
-- For binaries: no runtime required (self-contained).
-- Krisp account with access to meetings.
-
-## Notes
-- Runs once and exits; rerun anytime to fetch new meetings.
-- If a download fails, processing continues with the next meeting.
