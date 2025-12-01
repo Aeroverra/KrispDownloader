@@ -1,8 +1,9 @@
 using System.Text.RegularExpressions;
-using System.Text.Json;
 using Aeroverra.KrispDownloader.Models;
 using Aeroverra.KrispDownloader.Configuration;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Aeroverra.KrispDownloader.Services
 {
@@ -33,8 +34,8 @@ namespace Aeroverra.KrispDownloader.Services
                 string formattedJson;
                 try
                 {
-                    using var doc = JsonDocument.Parse(transcriptContent);
-                    formattedJson = JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+                    var parsed = JToken.Parse(transcriptContent);
+                    formattedJson = parsed.ToString(Formatting.Indented);
                 }
                 catch (JsonException e)
                 {
