@@ -2,8 +2,8 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Aeroverra.KrispDownloader.Configuration;
 using Aeroverra.KrispDownloader.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Aeroverra.KrispDownloader.Services
 {
@@ -12,7 +12,7 @@ namespace Aeroverra.KrispDownloader.Services
         private readonly HttpClient _httpClient;
         private readonly KrispApiConfiguration _configuration;
         private readonly ILogger<KrispApiService> _logger;
-        private readonly JsonSerializerSettings _jsonSettings;
+        private readonly JsonSerializerOptions _jsonOptions;
 
         public KrispApiService(HttpClient httpClient, IOptions<KrispApiConfiguration> configuration, ILogger<KrispApiService> logger)
         {
@@ -20,11 +20,11 @@ namespace Aeroverra.KrispDownloader.Services
             _configuration = configuration.Value;
             _logger = logger;
             
-            _jsonSettings = new JsonSerializerSettings
+            _jsonOptions = new JsonSerializerOptions
             {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                MissingMemberHandling = MissingMemberHandling.Ignore,
-                NullValueHandling = NullValueHandling.Ignore
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
 
             // Set base URL and authorization header
@@ -88,7 +88,7 @@ namespace Aeroverra.KrispDownloader.Services
 
         private async Task<MeetingsListResponse?> GetMeetingsPageAsync(MeetingsListRequest request, CancellationToken cancellationToken)
         {
-            var json = JsonConvert.SerializeObject(request, _jsonSettings);
+            var json = JsonSerializer.Serialize(request, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("/v2/meetings/list", content, cancellationToken);
@@ -101,7 +101,7 @@ namespace Aeroverra.KrispDownloader.Services
             }
 
             var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            return JsonConvert.DeserializeObject<MeetingsListResponse>(responseContent, _jsonSettings);
+            return JsonSerializer.Deserialize<MeetingsListResponse>(responseContent, _jsonOptions);
         }
 
         public async Task<MeetingDetailsResult?> GetMeetingDetailsAsync(string meetingId, CancellationToken cancellationToken = default)
@@ -124,7 +124,7 @@ namespace Aeroverra.KrispDownloader.Services
                 MeetingDetailsResponse? parsed = null;
                 try
                 {
-                    parsed = JsonConvert.DeserializeObject<MeetingDetailsResponse>(content, _jsonSettings);
+                    parsed = JsonSerializer.Deserialize<MeetingDetailsResponse>(content, _jsonOptions);
                 }
                 catch (Exception ex)
                 {

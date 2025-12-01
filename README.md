@@ -1,71 +1,64 @@
-# Krisp Transcript Downloader
+# Krisp Downloader (Transcripts + Recordings)
 
-A C# console application that downloads all your Krisp.ai meeting transcripts.
+## Quick Start (binary)
+1) Download the latest release asset for your platform (names include the RID, e.g., `KrispDownloader-win-x64.exe`, `KrispDownloader-osx-arm64`, etc.).
+2) Run it once. On first run it will create `appsettings.json` next to the executable and exit.
+3) Edit `appsettings.json`:
+   - Set `BearerToken` to your Krisp token (see “Get your bearer token” below).
+   - Optionally adjust output paths and toggles (`SaveRecordings`, `SaveTranscripts`, `SaveMeetingDetails`).
+4) Run it again to download meeting details, transcripts, and recordings.
 
-## Features
+## Quick Start (source)
+```bash
+dotnet restore Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj
+dotnet run --project Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj
+```
+- First run writes `appsettings.json`, then exits. Edit it and rerun.
 
-- Downloads all available transcripts from your Krisp.ai account
-- Handles pagination automatically to get all meetings
-- Saves transcripts with descriptive filenames including date and meeting name
-- Provides detailed logging of the download process
-- Respectful API usage with delays between requests
+## Get your Krisp bearer token
+- Log into Krisp in your browser.
+- Open dev tools (F12) → Network.
+- Trigger a Krisp API request (e.g., open a meeting).
+- Copy the `Authorization: Bearer ...` header value.
+- Paste into `KrispApi.BearerToken` in `appsettings.json`.
 
-## Setup
+## What it does
+- Lists all meetings, pulls full meeting details JSON, and saves:
+  - Meeting details (formatted JSON).
+  - Transcript (pretty JSON + formatted text).
+  - Recording audio (mp3) when available.
+- Respects API (small delay, pagination handled).
+- Logs progress to console.
 
-1. **Get your Krisp.ai Bearer Token**
-   - Log into your Krisp.ai account
-   - Open browser developer tools (F12)
-   - Go to the Network tab
-   - Make a request to the Krisp API (like viewing a meeting)
-   - Find the Authorization header in the request and copy the Bearer token
-
-2. **Configure the Application**
-   - Open `appsettings.json`
-   - Replace `"your-bearer-token-here"` with your actual bearer token
-   - Optionally change the `DownloadDirectory` path (defaults to "Downloads")
-
-3. **Run the Application**
-   ```bash
-   cd KrispDownloader
-   dotnet run
-   ```
-
-## Configuration
-
-The application uses `appsettings.json` for configuration:
-
+## Outputs & config
+`appsettings.json` keys (created on first run):
 ```json
 {
   "KrispApi": {
-    "BaseUrl": "https://api.krisp.ai/v2",
-    "BearerToken": "your-bearer-token-here"
-  },
-  "DownloadDirectory": "Downloads"
+    "BaseUrl": "https://api.krisp.ai",
+    "BearerToken": "your-bearer-token-here",
+    "SaveRecordings": true,
+    "SaveTranscripts": true,
+    "SaveMeetingDetails": true,
+    "RecordingsOutput": "Krisp.AI Data Export/Recordings",
+    "TranscriptsOutput": "Krisp.AI Data Export/Transcripts",
+    "MeetingDetailsOutput": "Krisp.AI Data Export/MeetingDetails"
+  }
 }
 ```
+- Filenames include timestamp, meeting name, and meeting id.
+- Directories are created automatically.
 
-## Output
-
-- Transcripts are saved as JSON files in the specified download directory
-- Files are named with the format: `{date}_{meeting-name}_{meeting-id}.json`
-- The application will create the download directory if it doesn't exist
-- Detailed logs show the progress of the download process
-
-## What Gets Downloaded
-
-- The application fetches all meetings from your Krisp.ai account
-- Only meetings with available transcripts (status "uploaded" or "ready") are processed
-- Each transcript is saved as a complete JSON response from the Krisp API
-- The JSON includes transcript text, speakers, timestamps, and other meeting metadata
+## Supported release artifacts
+- Windows: `win-x64`, `win-x86`
+- macOS: `osx-x64`, `osx-arm64`
+- Linux: `linux-x64`, `linux-arm64`
 
 ## Requirements
-
-- .NET 9.0 or later
-- Valid Krisp.ai account with meetings that have transcripts
+- For source: .NET 10 SDK.
+- For binaries: no runtime required (self-contained).
+- Krisp account with access to meetings.
 
 ## Notes
-
-- The application runs once and then exits (it's not a continuous service)
-- There's a small delay between API requests to be respectful to the Krisp.ai servers
-- If a transcript fails to download, the application will continue with the next one
-- All activity is logged to the console for monitoring progress
+- Runs once and exits; rerun anytime to fetch new meetings.
+- If a download fails, processing continues with the next meeting.

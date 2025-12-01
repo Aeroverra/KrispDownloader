@@ -1,7 +1,9 @@
 using Aeroverra.KrispDownloader.Configuration;
 using Aeroverra.KrispDownloader.Services;
 using Serilog;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Aeroverra.KrispDownloader
 {
@@ -49,7 +51,11 @@ namespace Aeroverra.KrispDownloader
 
             var appSettings = new AppSettings { KrispApi = defaultConfig };
 
-            var json = JsonConvert.SerializeObject(appSettings, Formatting.Indented);
+            var json = JsonSerializer.Serialize(appSettings, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                TypeInfoResolver = new DefaultJsonTypeInfoResolver()
+            });
 
             File.WriteAllText(fileName, json);
             Console.WriteLine($"Created default '{fileName}'. Please update it with your settings and run again.");

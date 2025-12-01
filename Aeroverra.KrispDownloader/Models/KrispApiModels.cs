@@ -1,185 +1,185 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Aeroverra.KrispDownloader.Models
 {
     public class MeetingsListResponse
     {
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string Message { get; set; } = string.Empty;
 
-        [JsonProperty("data")]
+        [JsonPropertyName("data")]
         public MeetingsData Data { get; set; } = new();
 
-        [JsonProperty("req_id")]
+        [JsonPropertyName("req_id")]
         public string ReqId { get; set; } = string.Empty;
     }
 
     public class MeetingsData
     {
-        [JsonProperty("rows")]
+        [JsonPropertyName("rows")]
         public List<Meeting> Rows { get; set; } = new();
 
-        [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public int Count { get; set; }
     }
 
     public class Meeting
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
 
-        [JsonProperty("created_at")]
+        [JsonPropertyName("created_at")]
         public string CreatedAt { get; set; } = string.Empty;
 
-        [JsonProperty("started_at")]
+        [JsonPropertyName("started_at")]
         public string StartedAt { get; set; } = string.Empty;
 
-        [JsonProperty("duration")]
+        [JsonPropertyName("duration")]
         public int Duration { get; set; }
 
-        [JsonProperty("app_name")]
+        [JsonPropertyName("app_name")]
         public string AppName { get; set; } = string.Empty;
 
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
 
-        [JsonProperty("resources")]
+        [JsonPropertyName("resources")]
         public Resources Resources { get; set; } = new();
 
-        [JsonProperty("speakers")]
+        [JsonPropertyName("speakers")]
         public List<Speaker> Speakers { get; set; } = new();
 
-        [JsonProperty("user_interactions")]
+        [JsonPropertyName("user_interactions")]
         public UserInteractions UserInteractions { get; set; } = new();
 
-        [JsonProperty("is_demo")]
+        [JsonPropertyName("is_demo")]
         public bool IsDemo { get; set; }
 
-        [JsonProperty("is_private")]
+        [JsonPropertyName("is_private")]
         public bool IsPrivate { get; set; }
     }
 
     public class Resources
     {
-        [JsonProperty("transcript")]
+        [JsonPropertyName("transcript")]
         public Transcript Transcript { get; set; } = new();
 
-        [JsonProperty("recording")]
+        [JsonPropertyName("recording")]
         public bool Recording { get; set; }
 
-        [JsonProperty("recordings")]
+        [JsonPropertyName("recordings")]
         public List<Recording> Recordings { get; set; } = new();
 
-        [JsonProperty("meeting_notes")]
+        [JsonPropertyName("meeting_notes")]
         public MeetingNotes MeetingNotes { get; set; } = new();
     }
 
     public class Transcript
     {
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
 
-        [JsonProperty("processor")]
+        [JsonPropertyName("processor")]
         public string Processor { get; set; } = string.Empty;
     }
 
     public class Recording
     {
-        [JsonProperty("mime_type")]
+        [JsonPropertyName("mime_type")]
         public string MimeType { get; set; } = string.Empty;
 
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public long Size { get; set; }
     }
 
     // Detailed meeting response (used for recording download and transcript parsing)
     public class MeetingDetailsResponse
     {
-        [JsonProperty("code")]
+        [JsonPropertyName("code")]
         public int Code { get; set; }
 
-        [JsonProperty("message")]
+        [JsonPropertyName("message")]
         public string Message { get; set; } = string.Empty;
 
-        [JsonProperty("data")]
+        [JsonPropertyName("data")]
         public MeetingDetailsData Data { get; set; } = new();
 
-        [JsonProperty("req_id")]
+        [JsonPropertyName("req_id")]
         public string ReqId { get; set; } = string.Empty;
     }
 
     public class MeetingDetailsData
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
 
-        [JsonProperty("created_at")]
+        [JsonPropertyName("created_at")]
         public string CreatedAt { get; set; } = string.Empty;
 
-        [JsonProperty("resources")]
+        [JsonPropertyName("resources")]
         public MeetingResources Resources { get; set; } = new();
     }
 
     public class MeetingResources
     {
-        [JsonProperty("transcript")]
+        [JsonPropertyName("transcript")]
         public TranscriptDetail Transcript { get; set; } = new();
 
-        [JsonProperty("recording")]
+        [JsonPropertyName("recording")]
         public RecordingDetail? Recording { get; set; }
 
-        [JsonProperty("recordings")]
+        [JsonPropertyName("recordings")]
         public List<RecordingDetail> Recordings { get; set; } = new();
     }
 
     public class TranscriptDetail
     {
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
 
-        [JsonProperty("method")]
+        [JsonPropertyName("method")]
         public string? Method { get; set; }
 
-        [JsonProperty("language")]
+        [JsonPropertyName("language")]
         public string? Language { get; set; }
 
-        [JsonProperty("processor")]
+        [JsonPropertyName("processor")]
         public string? Processor { get; set; }
 
-        [JsonProperty("content")]
+        [JsonPropertyName("content")]
         public string? Content { get; set; }
     }
 
     public class RecordingDetail
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string? Id { get; set; }
 
-        [JsonProperty("size")]
+        [JsonPropertyName("size")]
         public long? Size { get; set; }
 
-        [JsonProperty("created_at")]
+        [JsonPropertyName("created_at")]
         public string? CreatedAt { get; set; }
 
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string? Status { get; set; }
 
-        [JsonProperty("mime_type")]
+        [JsonPropertyName("mime_type")]
         public string? MimeType { get; set; }
 
-        [JsonProperty("capture_type")]
+        [JsonPropertyName("capture_type")]
         public string? CaptureType { get; set; }
 
-        [JsonProperty("url")]
+        [JsonPropertyName("url")]
         public string? Url { get; set; }
     }
 
@@ -191,76 +191,76 @@ namespace Aeroverra.KrispDownloader.Models
 
     public class MeetingNotes
     {
-        [JsonProperty("action_items")]
+        [JsonPropertyName("action_items")]
         public ActionItems? ActionItems { get; set; }
 
-        [JsonProperty("key_points")]
+        [JsonPropertyName("key_points")]
         public KeyPoints? KeyPoints { get; set; }
     }
 
     public class ActionItems
     {
-        [JsonProperty("created_at")]
+        [JsonPropertyName("created_at")]
         public string CreatedAt { get; set; } = string.Empty;
 
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
     }
 
     public class KeyPoints
     {
-        [JsonProperty("created_at")]
+        [JsonPropertyName("created_at")]
         public string CreatedAt { get; set; } = string.Empty;
 
-        [JsonProperty("status")]
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
     }
 
     public class Speaker
     {
-        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [JsonProperty("first_name")]
+        [JsonPropertyName("first_name")]
         public string FirstName { get; set; } = string.Empty;
 
-        [JsonProperty("last_name")]
+        [JsonPropertyName("last_name")]
         public string LastName { get; set; } = string.Empty;
 
-        [JsonProperty("email")]
+        [JsonPropertyName("email")]
         public string Email { get; set; } = string.Empty;
 
-        [JsonProperty("photo")]
+        [JsonPropertyName("photo")]
         public string Photo { get; set; } = string.Empty;
     }
 
     public class UserInteractions
     {
-        [JsonProperty("read")]
+        [JsonPropertyName("read")]
         public bool Read { get; set; }
 
-        [JsonProperty("starred")]
+        [JsonPropertyName("starred")]
         public bool Starred { get; set; }
 
-        [JsonProperty("hidden")]
+        [JsonPropertyName("hidden")]
         public bool Hidden { get; set; }
     }
 
     public class MeetingsListRequest
     {
-        [JsonProperty("sort")]
+        [JsonPropertyName("sort")]
         public string Sort { get; set; } = "desc";
 
-        [JsonProperty("sortKey")]
+        [JsonPropertyName("sortKey")]
         public string SortKey { get; set; } = "created_at";
 
-        [JsonProperty("page")]
+        [JsonPropertyName("page")]
         public int Page { get; set; } = 1;
 
-        [JsonProperty("limit")]
+        [JsonPropertyName("limit")]
         public int Limit { get; set; } = 250;
 
-        [JsonProperty("starred")]
+        [JsonPropertyName("starred")]
         public bool Starred { get; set; } = false;
     }
 }

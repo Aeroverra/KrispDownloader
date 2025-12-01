@@ -29,9 +29,71 @@ jobs:
             -c Release \
             -r win-x64 \
             --self-contained true \
+            /p:PublishTrimmed=false \
             /p:PublishSingleFile=true \
             /p:IncludeNativeLibrariesForSelfExtract=true \
             -o out/win-x64
+          mv out/win-x64/KrispDownloader.exe out/KrispDownloader-win-x64.exe
+
+      - name: Publish (win-x86, self-contained)
+        run: |
+          dotnet publish Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj \
+            -c Release \
+            -r win-x86 \
+            --self-contained true \
+            /p:PublishTrimmed=false \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/win-x86
+          mv out/win-x86/KrispDownloader.exe out/KrispDownloader-win-x86.exe
+
+      - name: Publish (linux-x64, self-contained)
+        run: |
+          dotnet publish Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj \
+            -c Release \
+            -r linux-x64 \
+            --self-contained true \
+            /p:PublishTrimmed=false \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/linux-x64
+          mv out/linux-x64/KrispDownloader out/KrispDownloader-linux-x64
+
+      - name: Publish (linux-arm64, self-contained)
+        run: |
+          dotnet publish Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj \
+            -c Release \
+            -r linux-arm64 \
+            --self-contained true \
+            /p:PublishTrimmed=false \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/linux-arm64
+          mv out/linux-arm64/KrispDownloader out/KrispDownloader-linux-arm64
+
+      - name: Publish (osx-x64, self-contained)
+        run: |
+          dotnet publish Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj \
+            -c Release \
+            -r osx-x64 \
+            --self-contained true \
+            /p:PublishTrimmed=false \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/osx-x64
+          mv out/osx-x64/KrispDownloader out/KrispDownloader-osx-x64
+
+      - name: Publish (osx-arm64, self-contained)
+        run: |
+          dotnet publish Aeroverra.KrispDownloader/Aeroverra.KrispDownloader.csproj \
+            -c Release \
+            -r osx-arm64 \
+            --self-contained true \
+            /p:PublishTrimmed=false \
+            /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            -o out/osx-arm64
+          mv out/osx-arm64/KrispDownloader out/KrispDownloader-osx-arm64
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -40,8 +102,8 @@ jobs:
           name: v1.0.${{ github.run_number }}
           body: |
             Automated build for commit ${{ github.sha }}.
-            - Platform: win-x64
-            - Self-contained single-file executable
-          artifacts: out/win-x64/KrispDownloader.exe
+            - Platforms: win-x64, win-x86, linux-x64, linux-arm64, osx-x64, osx-arm64
+            - Self-contained single-file executables
+          artifacts: out/KrispDownloader-win-x64.exe,out/KrispDownloader-win-x86.exe,out/KrispDownloader-linux-x64,out/KrispDownloader-linux-arm64,out/KrispDownloader-osx-x64,out/KrispDownloader-osx-arm64
           artifactContentType: application/vnd.microsoft.portable-executable
           token: ${{ secrets.GITHUB_TOKEN }}

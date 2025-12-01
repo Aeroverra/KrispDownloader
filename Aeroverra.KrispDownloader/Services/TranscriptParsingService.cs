@@ -1,5 +1,5 @@
 using Aeroverra.KrispDownloader.Models;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace Aeroverra.KrispDownloader.Services
 {
@@ -16,7 +16,8 @@ namespace Aeroverra.KrispDownloader.Services
         {
             try
             {
-                var root = JObject.Parse(jsonContent);
+                using var document = JsonDocument.Parse(jsonContent);
+                var root = document.RootElement;
 
                 // Extract speaker information
                 var speakerMap = ExtractSpeakerMap(root);
@@ -34,34 +35,32 @@ namespace Aeroverra.KrispDownloader.Services
             }
         }
 
-        private Dictionary<int, string> ExtractSpeakerMap(JObject root)
+        private Dictionary<int, string> ExtractSpeakerMap(JsonElement root)
         {
             var speakerMap = new Dictionary<int, string>();
 
-            if (root.TryGetValue("data", out var dataToken) &&
-                dataToken is JObject data &&
-                data.TryGetValue("speakers", out var speakersToken) &&
-                speakersToken is JObject speakers &&
-                speakers.TryGetValue("data", out var speakerDataToken) &&
-                speakerDataToken is JObject speakerData)
+            if (root.TryGetProperty("data", out var data) && 
+                data.TryGetProperty("speakers", out var speakers) && 
+                speakers.TryGetProperty("data", out var speakerData))
             {
-                foreach (var speakerProperty in speakerData.Properties())
+                foreach (var speakerProperty in speakerData.EnumerateObject())
                 {
-                    if (int.TryParse(speakerProperty.Name, out var speakerIndex) &&
-                        speakerProperty.Value is JObject speaker &&
-                        speaker.TryGetValue("person", out var personToken) &&
-                        personToken is JObject person)
+                    if (int.TryParse(speakerProperty.Name, out var speakerIndex))
                     {
-                        var firstName = person.Value<string>("first_name") ?? string.Empty;
-                        var lastName = person.Value<string>("last_name") ?? string.Empty;
+                        var speaker = speakerProperty.Value;
+                        if (speaker.TryGetProperty("person", out var person))
+                        {
+                            var firstName = person.TryGetProperty("first_name", out var fn) ? fn.GetString() : "";
+                            var lastName = person.TryGetProperty("last_name", out var ln) ? ln.GetString() : "";
+                            
+                            var displayName = !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName)
+                                ? $"{firstName} {lastName}"
+                                : !string.IsNullOrEmpty(firstName) ? firstName
+                                : !string.IsNullOrEmpty(lastName) ? lastName
+                                : $"Speaker {speakerIndex}";
 
-                        var displayName = !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName)
-                            ? $"{firstName} {lastName}"
-                            : !string.IsNullOrEmpty(firstName) ? firstName
-                            : !string.IsNullOrEmpty(lastName) ? lastName
-                            : $"Speaker {speakerIndex}";
-
-                        speakerMap[speakerIndex] = displayName;
+                            speakerMap[speakerIndex] = displayName;
+                        }
                     }
                 }
             }
@@ -69,40 +68,39 @@ namespace Aeroverra.KrispDownloader.Services
             return speakerMap;
         }
 
-        private List<TranscriptEntry> ExtractTranscriptContent(JObject root)
+        private List<TranscriptEntry> ExtractTranscriptContent(JsonElement root)
         {
             var entries = new List<TranscriptEntry>();
 
-            if (root.TryGetValue("data", out var dataToken) &&
-                dataToken is JObject data &&
-                data.TryGetValue("resources", out var resourcesToken) &&
-                resourcesToken is JObject resources &&
-                resources.TryGetValue("transcript", out var transcriptToken) &&
-                transcriptToken is JObject transcript &&
-                transcript.TryGetValue("content", out var contentToken))
+            if (root.TryGetProperty("data", out var data) && 
+                data.TryGetProperty("resources", out var resources) && 
+                resources.TryGetProperty("transcript", out var transcript) && 
+                transcript.TryGetProperty("content", out var contentProperty))
             {
-                var contentString = contentToken?.ToString();
+                var contentString = contentProperty.GetString();
                 if (!string.IsNullOrEmpty(contentString))
                 {
-                    var transcriptArray = JArray.Parse(contentString);
-                    foreach (var item in transcriptArray.OfType<JObject>())
+                    var transcriptArray = JsonSerializer.Deserialize<JsonElement[]>(contentString);
+                    if (transcriptArray != null)
                     {
-                        if (item.TryGetValue("speakerIndex", out var speakerIndexToken) &&
-                            item.TryGetValue("speech", out var speechToken) &&
-                            speechToken is JObject speech)
+                        foreach (var item in transcriptArray)
                         {
-                            var speakerIndex = speakerIndexToken.Value<int>();
-                            var startTime = speech.Value<double?>("start") ?? 0;
-                            var text = speech.Value<string>("text") ?? string.Empty;
-
-                            if (!string.IsNullOrEmpty(text))
+                            if (item.TryGetProperty("speakerIndex", out var speakerIndexProp) &&
+                                item.TryGetProperty("speech", out var speech))
                             {
-                                entries.Add(new TranscriptEntry
+                                var speakerIndex = speakerIndexProp.GetInt32();
+                                var startTime = speech.TryGetProperty("start", out var start) ? start.GetDouble() : 0;
+                                var text = speech.TryGetProperty("text", out var textProp) ? textProp.GetString() : "";
+
+                                if (!string.IsNullOrEmpty(text))
                                 {
-                                    SpeakerIndex = speakerIndex,
-                                    StartTime = startTime,
-                                    Text = text.Trim()
-                                });
+                                    entries.Add(new TranscriptEntry
+                                    {
+                                        SpeakerIndex = speakerIndex,
+                                        StartTime = startTime,
+                                        Text = text.Trim()
+                                    });
+                                }
                             }
                         }
                     }
