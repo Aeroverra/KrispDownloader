@@ -79,27 +79,28 @@ namespace Aeroverra.KrispDownloader.Services
             }
         }
 
-        private string CreateSafeFileName(Meeting meeting, string extension)
+        private string CreateSafeFileName(Meeting meeting, string extension, string? extraSuffix = null)
         {
             // Parse the date from created_at
             var createdDate = DateTime.TryParse(meeting.CreatedAt, out var date) ? date : DateTime.Now;
             var dateString = createdDate.ToString("yyyy-MM-dd_HH-mm-ss");
             
             // Clean the meeting name to make it file-safe
-            var safeName = CleanFileName(meeting.Name);
+            var safeName = CleanPathSegment(meeting.Name);
+            var suffix = string.IsNullOrWhiteSpace(extraSuffix) ? string.Empty : $"_{CleanPathSegment(extraSuffix)}";
             
             // Create filename with format: {date}_{safeName}_{meetingId}.{extension}
-            return $"{dateString}_{safeName}_{meeting.Id}{extension}";
+            return $"{dateString}_{safeName}_{meeting.Id}{suffix}{extension}";
         }
 
-        private string CleanFileName(string fileName)
+        private string CleanPathSegment(string value)
         {
-            if (string.IsNullOrEmpty(fileName))
+            if (string.IsNullOrEmpty(value))
                 return "unnamed_meeting";
 
             // Remove invalid characters and replace with underscores
             var invalidChars = Path.GetInvalidFileNameChars();
-            var cleanName = new string(fileName.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+            var cleanName = new string(value.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
             
             // Remove extra spaces and replace with underscores
             cleanName = Regex.Replace(cleanName, @"\s+", "_");
@@ -125,14 +126,40 @@ namespace Aeroverra.KrispDownloader.Services
             return Path.GetFullPath(_recordingsDirectory);
         }
 
-        public async Task SaveRecordingAsync(Meeting meeting, Stream contentStream, string? mimeType, CancellationToken cancellationToken = default)
+        public async Task SaveRecordingAsync(
+            Meeting meeting,
+            Stream contentStream,
+            RecordingDetail recording,
+            int recordingIndex,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 Directory.CreateDirectory(_recordingsDirectory);
 
-                var extension = GetExtensionFromMimeType(mimeType);
-                var fileName = CreateSafeFileName(meeting, extension);
+                var extension = GetExtensionFromMimeType(recording.MimeType);
+
+                var suffixParts = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(recording.CaptureType))
+                {
+                    suffixParts.Add(recording.CaptureType);
+                }
+
+                if (!string.IsNullOrWhiteSpace(recording.Id))
+                {
+                    suffixParts.Add(recording.Id!);
+                }
+                else if (recordingIndex >= 0)
+                {
+                    suffixParts.Add($"part{recordingIndex + 1:D2}");
+                }
+
+                var suffix = suffixParts.Count > 0
+                    ? string.Join("_", suffixParts)
+                    : $"part{recordingIndex + 1:D2}";
+
+                var fileName = CreateSafeFileName(meeting, extension, suffix);
                 var filePath = Path.Combine(_recordingsDirectory, fileName);
 
                 await using var fileStream = File.Create(filePath);
@@ -158,6 +185,9 @@ namespace Aeroverra.KrispDownloader.Services
                 "audio/wav" => ".wav",
                 "audio/x-wav" => ".wav",
                 "audio/flac" => ".flac",
+                "video/mp4" => ".mp4",
+                "video/webm" => ".webm",
+                "video/mpeg" => ".mpeg",
                 _ => ".bin"
             };
         }

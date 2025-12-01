@@ -1,4 +1,5 @@
 using Aeroverra.KrispDownloader.Configuration;
+using Aeroverra.KrispDownloader.Models;
 using Aeroverra.KrispDownloader.Services;
 
 namespace Aeroverra.KrispDownloader
@@ -82,41 +83,52 @@ namespace Aeroverra.KrispDownloader
 
                             if (_configuration.SaveRecordings)
                             {
-                                // Download recording if available
                                 var resources = meetingDetailsResult.Parsed?.Data?.Resources;
-                                if (resources?.Recording != null)
+                                var recordingDetails = new List<RecordingDetail>();
+
+                                if (resources != null)
                                 {
-                                    var recordingCount = resources.Recordings?.Count ?? 0;
-                                    if (recordingCount > 1)
+                                    if (resources.Recordings?.Any() == true)
                                     {
-                                        _logger.LogCritical("Meeting {Id} has {Count} recordings. Support for this may need to be added", meeting.Id, recordingCount);
-                                        Console.Title = $"{Program.ConsoleTitle} CRITICAL: Meeting {meeting.Id} has {recordingCount} recordings!";
+                                        recordingDetails.AddRange(resources.Recordings);
+                                    }
+                                    else if (resources.Recording != null)
+                                    {
+                                        recordingDetails.Add(resources.Recording);
+                                    }
+                                }
+
+                                if (recordingDetails.Count == 0)
+                                {
+                                    _logger.LogWarning("Recording info missing for meeting {Id}", meeting.Id);
+                                }
+
+                                for (int i = 0; i < recordingDetails.Count; i++)
+                                {
+                                    var recording = recordingDetails[i];
+                                    var label = string.IsNullOrWhiteSpace(recording.CaptureType)
+                                        ? $"recording_{i + 1}"
+                                        : recording.CaptureType;
+
+                                    if (string.IsNullOrWhiteSpace(recording.Url))
+                                    {
+                                        _logger.LogWarning("Recording URL missing for meeting {Id} ({Label})", meeting.Id, label);
+                                        continue;
                                     }
 
-                                    var recordingUrl = resources.Recording.Url;
-                                    var mimeType = resources.Recording.MimeType;
+                                    _logger.LogDebug("Downloading recording {Index}/{Total} ({Label}) for meeting {Name}",
+                                        i + 1, recordingDetails.Count, label, meeting.Name);
 
-                                    if (!string.IsNullOrWhiteSpace(recordingUrl))
+                                    using var response = await _krispApiService.GetRecordingResponseAsync(recording.Url, stoppingToken);
+                                    if (response != null)
                                     {
-                                        using var response = await _krispApiService.GetRecordingResponseAsync(recordingUrl, stoppingToken);
-                                        if (response != null)
-                                        {
-                                            await using var stream = await response.Content.ReadAsStreamAsync(stoppingToken);
-                                            await _fileService.SaveRecordingAsync(meeting, stream, mimeType, stoppingToken);
-                                        }
-                                        else
-                                        {
-                                            _logger.LogWarning("Failed to download recording for meeting {Id}", meeting.Id);
-                                        }
+                                        await using var stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                                        await _fileService.SaveRecordingAsync(meeting, stream, recording, i, stoppingToken);
                                     }
                                     else
                                     {
-                                        _logger.LogWarning("Recording URL missing for meeting {Id}", meeting.Id);
+                                        _logger.LogWarning("Failed to download recording {Index} for meeting {Id}", i + 1, meeting.Id);
                                     }
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("Recording info missing for meeting {Id}", meeting.Id);
                                 }
                             }
 

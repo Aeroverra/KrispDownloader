@@ -22,8 +22,8 @@ Tip: You can filter Network requests by typing “recording” or “meetings”
 ## What gets exported
 - Meeting details (formatted JSON)  
 - Transcripts (raw JSON + formatted text)  
-- Recordings (mp3) when available  
-- Filenames include timestamp + meeting name + id; directories are auto-created.
+- Recordings (audio/video, all available files including screen/full video captures when present)  
+- Filenames include timestamp + meeting name + id; directories are auto-created. Multiple recordings include capture-type/part info to avoid collisions.
 
 ## Configuration (created on first run)
 ```json
