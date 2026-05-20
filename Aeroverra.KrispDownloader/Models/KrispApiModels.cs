@@ -42,7 +42,7 @@ namespace Aeroverra.KrispDownloader.Models
         public string StartedAt { get; set; } = string.Empty;
 
         [JsonPropertyName("duration")]
-        public int Duration { get; set; }
+        public double? Duration { get; set; }
 
         [JsonPropertyName("app_name")]
         public string AppName { get; set; } = string.Empty;
