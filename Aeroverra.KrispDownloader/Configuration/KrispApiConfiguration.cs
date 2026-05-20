@@ -13,5 +13,7 @@ namespace Aeroverra.KrispDownloader.Configuration
         public string RecordingsOutput { get; set; } = "Krisp.AI Data Export/Recordings";
         public string TranscriptsOutput { get; set; } = "Krisp.AI Data Export/Transcripts";
         public string MeetingDetailsOutput { get; set; } = "Krisp.AI Data Export/MeetingDetails";
+
+        public bool ConvertTimesToUtc { get; set; } = false;
     }
 }

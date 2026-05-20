@@ -12,6 +12,7 @@ namespace Aeroverra.KrispDownloader.Services
         private readonly string _meetingDetailsDirectory;
         private readonly string _formattedDirectory;
         private readonly string _recordingsDirectory;
+        private readonly bool _useLocalTime;
 
         public FileService(ILogger<FileService> logger, IOptions<KrispApiConfiguration> configuration)
         {
@@ -20,6 +21,7 @@ namespace Aeroverra.KrispDownloader.Services
             _meetingDetailsDirectory = config.MeetingDetailsOutput ?? "Downloads";
             _formattedDirectory = config.TranscriptsOutput ?? "Downloads";
             _recordingsDirectory = config.RecordingsOutput ?? "Downloads";
+            _useLocalTime = config.ConvertTimesToUtc;
         }
 
         public async Task SaveMeetingDetailsJson(Meeting meeting, string transcriptContent)
@@ -82,7 +84,15 @@ namespace Aeroverra.KrispDownloader.Services
         private string CreateSafeFileName(Meeting meeting, string extension, string? extraSuffix = null)
         {
             // Parse the date from created_at
-            var createdDate = DateTime.TryParse(meeting.CreatedAt, out var date) ? date : DateTime.Now;
+            DateTime createdDate;
+            if (DateTimeOffset.TryParse(meeting.CreatedAt, out var date))
+            {
+                createdDate = _useLocalTime ? date.UtcDateTime : date.LocalDateTime;
+            }
+            else
+            {
+                createdDate = DateTime.UtcNow;
+            }
             var dateString = createdDate.ToString("yyyy-MM-dd_HH-mm-ss");
             
             // Clean the meeting name to make it file-safe
