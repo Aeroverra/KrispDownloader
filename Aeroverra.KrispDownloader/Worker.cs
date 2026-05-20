@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Aeroverra.KrispDownloader.Configuration;
 using Aeroverra.KrispDownloader.Models;
 using Aeroverra.KrispDownloader.Services;
@@ -32,7 +33,6 @@ namespace Aeroverra.KrispDownloader
             {
                 _logger.LogInformation("Starting Krisp transcript download process...");
 
-                // Get all meetings
                 var meetings = await _krispApiService.GetAllMeetingsAsync(stoppingToken);
 
                 if (meetings.Count == 0)
@@ -41,7 +41,6 @@ namespace Aeroverra.KrispDownloader
                     return;
                 }
 
-                // Filter meetings that have transcripts available
                 var meetingsWithTranscripts = meetings
                     .Where(m =>
                         m.Resources.Transcript.Status == "uploaded" ||
@@ -51,14 +50,15 @@ namespace Aeroverra.KrispDownloader
                 _logger.LogInformation("Found {Total} meetings, {WithTranscripts} have transcripts available",
                     meetings.Count, meetingsWithTranscripts.Count);
 
-                // Download transcripts for each meeting
                 int successCount = 0;
                 int failureCount = 0;
 
                 foreach (var meeting in meetingsWithTranscripts)
                 {
                     if (stoppingToken.IsCancellationRequested)
+                    {
                         break;
+                    }
 
                     try
                     {
@@ -68,7 +68,6 @@ namespace Aeroverra.KrispDownloader
 
                         if (meetingDetailsResult != null && !string.IsNullOrWhiteSpace(meetingDetailsResult.RawJson))
                         {
-                            // Save the original JSON
                             if (_configuration.SaveMeetingDetails)
                             {
                                 await _fileService.SaveMeetingDetailsJson(meeting, meetingDetailsResult.RawJson);
@@ -76,27 +75,13 @@ namespace Aeroverra.KrispDownloader
 
                             if (_configuration.SaveTranscripts)
                             {
-                                // Parse and save the formatted transcript
                                 var formattedTranscript = _transcriptParsingService.ParseTranscriptToReadableFormat(meetingDetailsResult.RawJson);
                                 await _fileService.SaveFormattedTranscriptAsync(meeting, formattedTranscript);
                             }
 
                             if (_configuration.SaveRecordings)
                             {
-                                var resources = meetingDetailsResult.Parsed?.Data?.Resources;
-                                var recordingDetails = new List<RecordingDetail>();
-
-                                if (resources != null)
-                                {
-                                    if (resources.Recordings?.Any() == true)
-                                    {
-                                        recordingDetails.AddRange(resources.Recordings);
-                                    }
-                                    else if (resources.Recording != null)
-                                    {
-                                        recordingDetails.Add(resources.Recording);
-                                    }
-                                }
+                                var recordingDetails = ExtractRecordingsFromBlockTree(meetingDetailsResult.Parsed);
 
                                 if (recordingDetails.Count == 0)
                                 {
@@ -140,7 +125,6 @@ namespace Aeroverra.KrispDownloader
                             failureCount++;
                         }
 
-                        // Add a small delay to be respectful to the API
                         await Task.Delay(100, stoppingToken);
                     }
                     catch (Exception ex)
@@ -157,6 +141,57 @@ namespace Aeroverra.KrispDownloader
             {
                 _logger.LogError(ex, "Fatal error during transcript download process");
             }
+        }
+
+        private List<RecordingDetail> ExtractRecordingsFromBlockTree(Block? rootBlock)
+        {
+            var recordings = new List<RecordingDetail>();
+            if (rootBlock == null)
+            {
+                return recordings;
+            }
+
+            var recordingBlocks = FindAllBlocksByType(rootBlock, "recording");
+            foreach (var block in recordingBlocks)
+            {
+                if (block.Content == null || block.Content.Value.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                var content = block.Content.Value;
+                var detail = new RecordingDetail
+                {
+                    Id = block.Id,
+                    Url = content.TryGetProperty("url", out var url) ? url.GetString() : null,
+                    MimeType = content.TryGetProperty("mime_type", out var mime) ? mime.GetString() : null,
+                    CaptureType = content.TryGetProperty("capture_type", out var capture) ? capture.GetString() : null,
+                    Size = content.TryGetProperty("size", out var size) && size.ValueKind == JsonValueKind.Number ? size.GetInt64() : null,
+                    Status = content.TryGetProperty("status", out var status) ? status.GetString() : null,
+                    CreatedAt = content.TryGetProperty("created_at", out var created) ? created.GetString() : null
+                };
+
+                recordings.Add(detail);
+            }
+
+            return recordings;
+        }
+
+        private List<Block> FindAllBlocksByType(Block block, string blockType)
+        {
+            var results = new List<Block>();
+
+            if (block.BlockType == blockType)
+            {
+                results.Add(block);
+            }
+
+            foreach (var child in block.Children)
+            {
+                results.AddRange(FindAllBlocksByType(child, blockType));
+            }
+
+            return results;
         }
     }
 }

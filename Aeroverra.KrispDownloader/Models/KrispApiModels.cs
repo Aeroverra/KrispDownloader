@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Aeroverra.KrispDownloader.Models
@@ -98,99 +99,64 @@ namespace Aeroverra.KrispDownloader.Models
         public long Size { get; set; }
     }
 
-    // Detailed meeting response (used for recording download and transcript parsing)
-    public class MeetingDetailsResponse
-    {
-        [JsonPropertyName("code")]
-        public int Code { get; set; }
-
-        [JsonPropertyName("message")]
-        public string Message { get; set; } = string.Empty;
-
-        [JsonPropertyName("data")]
-        public MeetingDetailsData Data { get; set; } = new();
-
-        [JsonPropertyName("req_id")]
-        public string ReqId { get; set; } = string.Empty;
-    }
-
-    public class MeetingDetailsData
+    public class Block
     {
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("permission")]
+        public string Permission { get; set; } = string.Empty;
 
-        [JsonPropertyName("created_at")]
-        public string CreatedAt { get; set; } = string.Empty;
+        [JsonPropertyName("label")]
+        public string Label { get; set; } = string.Empty;
+
+        [JsonPropertyName("block_type")]
+        public string BlockType { get; set; } = string.Empty;
 
         [JsonPropertyName("resources")]
-        public MeetingResources Resources { get; set; } = new();
-    }
+        public List<BlockResource> Resources { get; set; } = new();
 
-    public class MeetingResources
-    {
-        [JsonPropertyName("transcript")]
-        public TranscriptDetail Transcript { get; set; } = new();
-
-        [JsonPropertyName("recording")]
-        public RecordingDetail? Recording { get; set; }
-
-        [JsonPropertyName("recordings")]
-        public List<RecordingDetail> Recordings { get; set; } = new();
-    }
-
-    public class TranscriptDetail
-    {
-        [JsonPropertyName("status")]
-        public string Status { get; set; } = string.Empty;
-
-        [JsonPropertyName("method")]
-        public string? Method { get; set; }
-
-        [JsonPropertyName("language")]
-        public string? Language { get; set; }
-
-        [JsonPropertyName("processor")]
-        public string? Processor { get; set; }
+        [JsonPropertyName("children")]
+        public List<Block> Children { get; set; } = new();
 
         [JsonPropertyName("content")]
-        public string? Content { get; set; }
+        public JsonElement? Content { get; set; }
+    }
+
+    public class BlockResource
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("resource_type")]
+        public string ResourceType { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public JsonElement? Content { get; set; }
     }
 
     public class RecordingDetail
     {
-        [JsonPropertyName("id")]
         public string? Id { get; set; }
-
-        [JsonPropertyName("size")]
         public long? Size { get; set; }
-
-        [JsonPropertyName("created_at")]
         public string? CreatedAt { get; set; }
-
-        [JsonPropertyName("status")]
         public string? Status { get; set; }
-
-        [JsonPropertyName("mime_type")]
         public string? MimeType { get; set; }
-
-        [JsonPropertyName("capture_type")]
         public string? CaptureType { get; set; }
-
-        [JsonPropertyName("url")]
         public string? Url { get; set; }
     }
 
     public class MeetingDetailsResult
     {
         public string RawJson { get; set; } = string.Empty;
-        public MeetingDetailsResponse? Parsed { get; set; }
+        public Block? Parsed { get; set; }
     }
 
     public class MeetingNotes
     {
+        [JsonPropertyName("has_content")]
+        public bool HasContent { get; set; }
+
         [JsonPropertyName("action_items")]
         public ActionItems? ActionItems { get; set; }
 
@@ -259,8 +225,5 @@ namespace Aeroverra.KrispDownloader.Models
 
         [JsonPropertyName("limit")]
         public int Limit { get; set; } = 250;
-
-        [JsonPropertyName("starred")]
-        public bool Starred { get; set; } = false;
     }
 }
