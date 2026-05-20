@@ -10,6 +10,7 @@ namespace Aeroverra.KrispDownloader.Services
     public class KrispApiService
     {
         private readonly HttpClient _httpClient;
+        private readonly HttpClient _downloadClient;
         private readonly KrispApiConfiguration _configuration;
         private readonly ILogger<KrispApiService> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -19,7 +20,7 @@ namespace Aeroverra.KrispDownloader.Services
             _httpClient = httpClient;
             _configuration = configuration.Value;
             _logger = logger;
-            
+
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -27,10 +28,14 @@ namespace Aeroverra.KrispDownloader.Services
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
 
-            // Set base URL and authorization header
             _httpClient.BaseAddress = new Uri(_configuration.BaseUrl);
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_configuration.BearerToken}");
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "KrispDownloader/1.0");
+            _httpClient.DefaultRequestHeaders.Add("krisp_header_app", "web");
+            _httpClient.DefaultRequestHeaders.Add("krisp_header_web_project", "note");
+
+            _downloadClient = new HttpClient();
+            _downloadClient.DefaultRequestHeaders.Add("User-Agent", "KrispDownloader/1.0");
         }
 
         public async Task<List<Meeting>> GetAllMeetingsAsync(CancellationToken cancellationToken = default)
@@ -47,18 +52,17 @@ namespace Aeroverra.KrispDownloader.Services
                 try
                 {
                     _logger.LogDebug("Fetching meetings page {Page}", currentPage);
-                    
+
                     var request = new MeetingsListRequest
                     {
                         Sort = "desc",
                         SortKey = "created_at",
                         Page = currentPage,
-                        Limit = pageSize,
-                        Starred = false
+                        Limit = pageSize
                     };
 
                     var response = await GetMeetingsPageAsync(request, cancellationToken);
-                    
+
                     if (response == null || response.Code != 0)
                     {
                         _logger.LogError("Failed to fetch meetings page {Page}. Response: {Response}", currentPage, response?.Message);
@@ -67,11 +71,10 @@ namespace Aeroverra.KrispDownloader.Services
 
                     var meetings = response.Data.Rows;
                     allMeetings.AddRange(meetings);
-                    
-                    _logger.LogDebug("Retrieved {Count} meetings from page {Page}. Total so far: {Total}", 
+
+                    _logger.LogDebug("Retrieved {Count} meetings from page {Page}. Total so far: {Total}",
                         meetings.Count, currentPage, allMeetings.Count);
 
-                    // Check if we have more pages
                     hasMorePages = meetings.Count == pageSize && allMeetings.Count < response.Data.Count;
                     currentPage++;
                 }
@@ -92,10 +95,10 @@ namespace Aeroverra.KrispDownloader.Services
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("/v2/meetings/list", content, cancellationToken);
-            
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("HTTP error {StatusCode} when fetching meetings: {ReasonPhrase}", 
+                _logger.LogError("HTTP error {StatusCode} when fetching meetings: {ReasonPhrase}",
                     response.StatusCode, response.ReasonPhrase);
                 return null;
             }
@@ -109,26 +112,26 @@ namespace Aeroverra.KrispDownloader.Services
             try
             {
                 _logger.LogDebug("Downloading meeting details for meeting {MeetingId}", meetingId);
-                
-                var response = await _httpClient.GetAsync($"/v2/meetings/{meetingId}", cancellationToken);
-                
+
+                var response = await _httpClient.GetAsync($"/v2/block/{meetingId}/tree", cancellationToken);
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("HTTP error {StatusCode} when downloading transcript for meeting {MeetingId}: {ReasonPhrase}", 
+                    _logger.LogError("HTTP error {StatusCode} when downloading meeting details for {MeetingId}: {ReasonPhrase}",
                         response.StatusCode, meetingId, response.ReasonPhrase);
                     return null;
                 }
 
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                
-                MeetingDetailsResponse? parsed = null;
+
+                Block? parsed = null;
                 try
                 {
-                    parsed = JsonSerializer.Deserialize<MeetingDetailsResponse>(content, _jsonOptions);
+                    parsed = JsonSerializer.Deserialize<Block>(content, _jsonOptions);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to deserialize meeting details for meeting {MeetingId}", meetingId);
+                    _logger.LogWarning(ex, "Failed to deserialize block tree for meeting {MeetingId}", meetingId);
                 }
 
                 return new MeetingDetailsResult
@@ -139,7 +142,7 @@ namespace Aeroverra.KrispDownloader.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error downloading transcript for meeting {MeetingId}", meetingId);
+                _logger.LogError(ex, "Error downloading meeting details for meeting {MeetingId}", meetingId);
                 return null;
             }
         }
@@ -149,12 +152,12 @@ namespace Aeroverra.KrispDownloader.Services
             try
             {
                 _logger.LogDebug("Downloading recording from {Url}", recordingUrl);
-                
-                var response = await _httpClient.GetAsync(recordingUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                
+
+                var response = await _downloadClient.GetAsync(recordingUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("HTTP error {StatusCode} when downloading recording: {ReasonPhrase}", 
+                    _logger.LogError("HTTP error {StatusCode} when downloading recording: {ReasonPhrase}",
                         response.StatusCode, response.ReasonPhrase);
                     response.Dispose();
                     return null;
@@ -169,4 +172,4 @@ namespace Aeroverra.KrispDownloader.Services
             }
         }
     }
-} 
+}

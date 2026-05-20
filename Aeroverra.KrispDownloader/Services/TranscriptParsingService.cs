@@ -1,4 +1,3 @@
-using Aeroverra.KrispDownloader.Models;
 using System.Text.Json;
 
 namespace Aeroverra.KrispDownloader.Services
@@ -19,13 +18,9 @@ namespace Aeroverra.KrispDownloader.Services
                 using var document = JsonDocument.Parse(jsonContent);
                 var root = document.RootElement;
 
-                // Extract speaker information
                 var speakerMap = ExtractSpeakerMap(root);
-
-                // Extract transcript content
                 var transcriptContent = ExtractTranscriptContent(root);
 
-                // Format the transcript
                 return FormatTranscript(transcriptContent, speakerMap);
             }
             catch (Exception ex)
@@ -39,28 +34,36 @@ namespace Aeroverra.KrispDownloader.Services
         {
             var speakerMap = new Dictionary<int, string>();
 
-            if (root.TryGetProperty("data", out var data) && 
-                data.TryGetProperty("speakers", out var speakers) && 
-                speakers.TryGetProperty("data", out var speakerData))
+            if (root.TryGetProperty("resources", out var resources) && resources.ValueKind == JsonValueKind.Array)
             {
-                foreach (var speakerProperty in speakerData.EnumerateObject())
+                foreach (var resource in resources.EnumerateArray())
                 {
-                    if (int.TryParse(speakerProperty.Name, out var speakerIndex))
+                    if (resource.TryGetProperty("resource_type", out var resourceType)
+                        && resourceType.GetString() == "speakers_map"
+                        && resource.TryGetProperty("content", out var content)
+                        && content.TryGetProperty("data", out var speakerData))
                     {
-                        var speaker = speakerProperty.Value;
-                        if (speaker.TryGetProperty("person", out var person))
+                        foreach (var speakerProperty in speakerData.EnumerateObject())
                         {
-                            var firstName = person.TryGetProperty("first_name", out var fn) ? fn.GetString() : "";
-                            var lastName = person.TryGetProperty("last_name", out var ln) ? ln.GetString() : "";
-                            
-                            var displayName = !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName)
-                                ? $"{firstName} {lastName}"
-                                : !string.IsNullOrEmpty(firstName) ? firstName
-                                : !string.IsNullOrEmpty(lastName) ? lastName
-                                : $"Speaker {speakerIndex}";
+                            if (int.TryParse(speakerProperty.Name, out var speakerIndex))
+                            {
+                                var speaker = speakerProperty.Value;
+                                if (speaker.TryGetProperty("person", out var person))
+                                {
+                                    var firstName = person.TryGetProperty("first_name", out var fn) ? fn.GetString() : "";
+                                    var lastName = person.TryGetProperty("last_name", out var ln) && ln.ValueKind != JsonValueKind.Null ? ln.GetString() : "";
 
-                            speakerMap[speakerIndex] = displayName;
+                                    var displayName = !string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName)
+                                        ? $"{firstName} {lastName}"
+                                        : !string.IsNullOrEmpty(firstName) ? firstName
+                                        : !string.IsNullOrEmpty(lastName) ? lastName
+                                        : $"Speaker {speakerIndex}";
+
+                                    speakerMap[speakerIndex] = displayName;
+                                }
+                            }
                         }
+                        break;
                     }
                 }
             }
@@ -72,36 +75,34 @@ namespace Aeroverra.KrispDownloader.Services
         {
             var entries = new List<TranscriptEntry>();
 
-            if (root.TryGetProperty("data", out var data) && 
-                data.TryGetProperty("resources", out var resources) && 
-                resources.TryGetProperty("transcript", out var transcript) && 
-                transcript.TryGetProperty("content", out var contentProperty))
+            var transcriptBlock = FindBlockByType(root, "transcript");
+            if (transcriptBlock == null)
             {
-                var contentString = contentProperty.GetString();
-                if (!string.IsNullOrEmpty(contentString))
-                {
-                    var transcriptArray = JsonSerializer.Deserialize<JsonElement[]>(contentString);
-                    if (transcriptArray != null)
-                    {
-                        foreach (var item in transcriptArray)
-                        {
-                            if (item.TryGetProperty("speakerIndex", out var speakerIndexProp) &&
-                                item.TryGetProperty("speech", out var speech))
-                            {
-                                var speakerIndex = speakerIndexProp.GetInt32();
-                                var startTime = speech.TryGetProperty("start", out var start) ? start.GetDouble() : 0;
-                                var text = speech.TryGetProperty("text", out var textProp) ? textProp.GetString() : "";
+                return entries;
+            }
 
-                                if (!string.IsNullOrEmpty(text))
-                                {
-                                    entries.Add(new TranscriptEntry
-                                    {
-                                        SpeakerIndex = speakerIndex,
-                                        StartTime = startTime,
-                                        Text = text.Trim()
-                                    });
-                                }
-                            }
+            var block = transcriptBlock.Value;
+            if (block.TryGetProperty("content", out var content)
+                && content.TryGetProperty("speech_data", out var speechData)
+                && speechData.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in speechData.EnumerateArray())
+                {
+                    if (item.TryGetProperty("speakerIndex", out var speakerIndexProp)
+                        && item.TryGetProperty("speech", out var speech))
+                    {
+                        var speakerIndex = speakerIndexProp.GetInt32();
+                        var startTime = speech.TryGetProperty("start", out var start) ? start.GetDouble() : 0;
+                        var text = speech.TryGetProperty("text", out var textProp) ? textProp.GetString() : "";
+
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            entries.Add(new TranscriptEntry
+                            {
+                                SpeakerIndex = speakerIndex,
+                                StartTime = startTime,
+                                Text = text.Trim()
+                            });
                         }
                     }
                 }
@@ -110,14 +111,36 @@ namespace Aeroverra.KrispDownloader.Services
             return entries.OrderBy(e => e.StartTime).ToList();
         }
 
+        private JsonElement? FindBlockByType(JsonElement element, string blockType)
+        {
+            if (element.TryGetProperty("block_type", out var bt) && bt.GetString() == blockType)
+            {
+                return element;
+            }
+
+            if (element.TryGetProperty("children", out var children) && children.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var child in children.EnumerateArray())
+                {
+                    var found = FindBlockByType(child, blockType);
+                    if (found != null)
+                    {
+                        return found;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         private string FormatTranscript(List<TranscriptEntry> entries, Dictionary<int, string> speakerMap)
         {
             var result = new List<string>();
 
             foreach (var entry in entries)
             {
-                var speakerName = speakerMap.TryGetValue(entry.SpeakerIndex, out var name) 
-                    ? name 
+                var speakerName = speakerMap.TryGetValue(entry.SpeakerIndex, out var name)
+                    ? name
                     : $"Speaker {entry.SpeakerIndex}";
 
                 var timestamp = FormatTimestamp(entry.StartTime);
@@ -141,4 +164,4 @@ namespace Aeroverra.KrispDownloader.Services
         public double StartTime { get; set; }
         public string Text { get; set; } = string.Empty;
     }
-} 
+}
